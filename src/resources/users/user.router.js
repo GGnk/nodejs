@@ -15,7 +15,7 @@ router.get('/', async (req, res, next) => {
 router.get('/:id', async (req, res, next) => {
   try {
     const userGetId = await usersService.getId(req.params.id);
-    if (!userGetId.id) {
+    if (!userGetId) {
       throw new createError(NOT_FOUND, 'User not found');
     } else {
       res.status(OK).json(User.toResponse(userGetId));
