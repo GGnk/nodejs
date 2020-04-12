@@ -1,38 +1,59 @@
 const router = require('express').Router();
 const boardsService = require('./board.service');
+const Board = require('./board.model');
+const createError = require('http-errors');
+const { BAD_REQUEST, NOT_FOUND, OK, NO_CONTENT } = require('http-status-codes');
 
-router.get('/', async (req, res) => {
-  const users = await boardsService.getAll();
-
-  if (users.length) res.json(users);
-  else res.status(404).end();
+router.get('/', async (req, res, next) => {
+  try {
+    const boards = await boardsService.getAll();
+    res.status(OK).json(boards.map(Board.toResponse));
+  } catch (err) {
+    return next(err);
+  }
 });
 
-router.get('/:id', async (req, res) => {
-  const board = await boardsService.getBoardById(req.params.id);
-
-  if (board) res.json(board);
-  else res.status(404).end();
+router.get('/:id', async (req, res, next) => {
+  try {
+    const board = await boardsService.getBoardById(req.params.id);
+    if (!board.id) throw new createError(NOT_FOUND, 'Task not found');
+    else res.status(OK).json(Board.toResponse(board));
+  } catch (err) {
+    return next(err);
+  }
 });
 
-router.post('/', async (req, res) => {
-  const newBoard = await boardsService.createBoard(req.body);
-
-  res.json(newBoard);
+router.post('/', async (req, res, next) => {
+  try {
+    const newBoard = await boardsService.createBoard(req.body);
+    if (!newBoard) throw new createError(BAD_REQUEST, 'Bad user data');
+    else res.status(OK).json(Board.toResponse(newBoard));
+  } catch (err) {
+    return next(err);
+  }
 });
 
-router.put('/:id', async (req, res) => {
-  const updateBoard = await boardsService.updateBoard(req.params.id, req.body);
-
-  if (updateBoard) res.json(updateBoard);
-  else res.status(404).send('Error');
+router.put('/:id', async (req, res, next) => {
+  try {
+    const updateBoard = await boardsService.updateBoard(
+      req.params.id,
+      req.body
+    );
+    if (updateBoard) res.status(OK).json(updateBoard);
+    else throw new createError(BAD_REQUEST, 'Bad user data');
+  } catch (err) {
+    return next(err);
+  }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', async (req, res, next) => {
   const deleteBoard = await boardsService.deleteBoard(req.params.id);
-
-  if (deleteBoard) res.status(204).end();
-  else res.status(404).end();
+  try {
+    if (deleteBoard) res.status(NO_CONTENT).send();
+    else throw new createError(BAD_REQUEST, 'Bad user data');
+  } catch (err) {
+    return next(err);
+  }
 });
 
 module.exports = router;
